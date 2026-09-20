@@ -188,7 +188,25 @@ function escapeHtml(value) {
   })[character]);
 }
 
+let activeAudio = null;
+let activeAudioBtn = null;
+
+export function stopActiveAudio() {
+  if (activeAudio) {
+    activeAudio.pause();
+    activeAudio.currentTime = 0;
+    activeAudio = null;
+  }
+  if (activeAudioBtn) {
+    activeAudioBtn.querySelector('.icon-play')?.classList.remove('hidden');
+    activeAudioBtn.querySelector('.icon-pause')?.classList.add('hidden');
+    activeAudioBtn.classList.remove('playing');
+    activeAudioBtn = null;
+  }
+}
+
 function renderExternalAssets(assets, { storeKey, onDownload, onOpenSource }) {
+  stopActiveAudio();
   const resultsCount = document.getElementById('results-count');
   const modelsGrid = document.getElementById('models-grid');
   if (!modelsGrid) return;
@@ -214,14 +232,27 @@ function renderExternalAssets(assets, { storeKey, onDownload, onOpenSource }) {
     card.className = 'model-card external-asset-card';
     const isItchListing = asset.source === 'itchio';
     const isPixabayListing = asset.source === 'pixabay';
-    const targetLabel = isItchListing ? 'View / Buy on itch.io' : 'Download MP3 Preview';
+    const targetLabel = isItchListing ? 'View / Buy on itch.io' : 'Download MP3';
     const duration = asset.durationSeconds ? ` · ${asset.durationSeconds.toFixed(1)}s` : '';
     const sourceMeta = isItchListing ? asset.price : asset.license;
     const tags = (asset.tags || []).slice(0, 3).map((tag) => `<span>${escapeHtml(tag)}</span>`).join('');
+    const hasThumb = Boolean(asset.thumbnail && asset.thumbnail.trim());
+    const hasAudioDirect = Boolean(asset.directUrl && asset.directUrl.startsWith('http'));
 
     card.innerHTML = `
       <div class="card-media">
-        <img src="${escapeHtml(asset.thumbnail)}" class="card-thumbnail" alt="${escapeHtml(asset.name)}" loading="lazy">
+        ${hasThumb ? `
+          <img src="${escapeHtml(asset.thumbnail)}" class="card-thumbnail" alt="${escapeHtml(asset.name)}" loading="lazy">
+        ` : `
+          <div class="audio-card-placeholder">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M9 18V5l12-2v13"></path>
+              <circle cx="6" cy="18" r="3"></circle>
+              <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+            <span class="audio-card-duration">${asset.durationSeconds ? `${asset.durationSeconds.toFixed(1)}s` : 'Audio'}</span>
+          </div>
+        `}
         <span class="card-format-badge">${escapeHtml(asset.format)}</span>
       </div>
       <div class="card-content">
@@ -230,34 +261,65 @@ function renderExternalAssets(assets, { storeKey, onDownload, onOpenSource }) {
         ${isItchListing ? `<div class="itch-price">${escapeHtml(sourceMeta)}</div>` : ''}
         <p class="external-asset-description">${escapeHtml(asset.description || 'No description provided by the source.')}</p>
         <div class="external-asset-tags">${tags}</div>
-        ${isPixabayListing ? `
-          <p class="external-asset-description">Live listing scraped from Pixabay. License and creator details are shown above.</p>
-        ` : `
-          <div class="card-actions">
-            <button class="btn-card-inspect btn-card-download-external" data-action="download">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
+        <div class="card-actions">
+          ${hasAudioDirect ? `
+            <button class="btn-card-audio-preview" data-action="preview" title="Play / Pause Audio Preview">
+              <svg class="icon-play" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
-              <span>${targetLabel}</span>
+              <svg class="icon-pause hidden" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+              <span>Preview</span>
             </button>
-          </div>
-        `}
+          ` : ''}
+          <button class="btn-card-inspect btn-card-download-external" data-action="download">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>${targetLabel}</span>
+          </button>
+        </div>
       </div>
     `;
+
+    card.querySelector('[data-action="preview"]')?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const btn = event.currentTarget;
+      if (activeAudio && activeAudioBtn === btn) {
+        stopActiveAudio();
+        return;
+      }
+      stopActiveAudio();
+      const audio = new Audio(asset.directUrl);
+      activeAudio = audio;
+      activeAudioBtn = btn;
+      btn.querySelector('.icon-play')?.classList.add('hidden');
+      btn.querySelector('.icon-pause')?.classList.remove('hidden');
+      btn.classList.add('playing');
+      audio.play().catch((err) => {
+        console.warn('Audio preview error:', err);
+        stopActiveAudio();
+      });
+      audio.addEventListener('ended', () => stopActiveAudio());
+      audio.addEventListener('error', () => stopActiveAudio());
+    });
 
     card.querySelector('[data-action="download"]')?.addEventListener('click', (event) => {
       event.stopPropagation();
       if (isItchListing) onOpenSource?.(asset);
       else onDownload?.(asset);
     });
+
     const thumb = card.querySelector('.card-thumbnail');
     thumb?.addEventListener('error', () => {
       thumb.remove();
       const fallback = document.createElement('div');
       fallback.className = 'thumbnail-error-fallback';
-      fallback.textContent = asset.source === 'pixabay' ? 'Pixabay' : 'itch.io';
+      fallback.textContent = 'Thumbnail load error';
       card.querySelector('.card-media')?.prepend(fallback);
     });
     modelsGrid.appendChild(card);
@@ -265,6 +327,7 @@ function renderExternalAssets(assets, { storeKey, onDownload, onOpenSource }) {
 }
 
 async function fetchItch2DAssets(query, { onOpenSource }) {
+  stopActiveAudio();
   const resultsCount = document.getElementById('results-count');
   const modelsGrid = document.getElementById('models-grid');
   if (!modelsGrid) return;
@@ -280,20 +343,21 @@ async function fetchItch2DAssets(query, { onOpenSource }) {
   renderExternalAssets(result.assets, { storeKey: '2d', onOpenSource });
 }
 
-async function fetchPixabaySoundAssets(query) {
+async function fetchPixabaySoundAssets(query, { onDownload, onOpenSource } = {}) {
+  stopActiveAudio();
   const resultsCount = document.getElementById('results-count');
   const modelsGrid = document.getElementById('models-grid');
   if (!modelsGrid) return;
-  if (resultsCount) resultsCount.textContent = 'Scraping Pixabay sound effects...';
-  modelsGrid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div class="spinner" style="margin: 0 auto 12px auto;"></div><span>Loading live Pixabay sound effects...</span></div>';
+  if (resultsCount) resultsCount.textContent = 'Loading live Pixabay sound effects...';
+  modelsGrid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div class="spinner" style="margin: 0 auto 12px auto;"></div><span>Loading live sound effects...</span></div>';
 
   const result = await window.electronAPI.searchPixabaySoundEffects({ query, limit: 30 });
   if (!result.success) {
-    if (resultsCount) resultsCount.textContent = 'Pixabay sound effects could not be loaded.';
-    modelsGrid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><span>${escapeHtml(result.error || 'Could not load Pixabay sound effects.')}</span></div>`;
+    if (resultsCount) resultsCount.textContent = 'Sound effects could not be loaded.';
+    modelsGrid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><span>${escapeHtml(result.error || 'Could not load sound effects.')}</span></div>`;
     return;
   }
-  renderExternalAssets(result.assets, { storeKey: 'sound' });
+  renderExternalAssets(result.assets, { storeKey: 'sound', onDownload, onOpenSource });
 }
 
 export function loadActiveStore({ onInspect, onDownload, onOpenSource }) {
@@ -305,12 +369,13 @@ export function loadActiveStore({ onInspect, onDownload, onOpenSource }) {
     fetchItch2DAssets(state.searchQuery, { onOpenSource });
     return;
   }
-  fetchPixabaySoundAssets(state.searchQuery);
+  fetchPixabaySoundAssets(state.searchQuery, { onDownload, onOpenSource });
 }
 
 export function setActiveMarketplaceStore(storeKey) {
   if (!['3d', '2d', 'sound'].includes(storeKey)) return false;
 
+  stopActiveAudio();
   state.activeStore = storeKey;
   state.searchQuery = storeKey === '3d' ? 'sword' : '';
 
@@ -336,7 +401,7 @@ export function setActiveMarketplaceStore(storeKey) {
   if (sourceTag) {
     sourceTag.textContent = storeKey === '3d'
       ? 'Sketchfab API'
-      : storeKey === '2d' ? 'itch.io 2D catalog' : 'Pixabay live scraper';
+      : storeKey === '2d' ? 'itch.io 2D catalog' : 'Pixabay Sound Catalog';
   }
   return true;
 }

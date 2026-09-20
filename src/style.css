@@ -1087,6 +1087,51 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--accent-primary-hover);
 }
 
+.btn-card-audio-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-elevated, #24272e);
+  border: 1px solid var(--border-subtle, #363a45);
+  color: var(--text-main, #f0f2f5);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-card-audio-preview:hover {
+  background: var(--bg-surface-hover, #2c3038);
+  border-color: var(--border-focus, #4f5565);
+}
+
+.btn-card-audio-preview.playing {
+  background: rgba(120, 166, 255, 0.16);
+  border-color: rgba(120, 166, 255, 0.4);
+  color: #bcd0ff;
+}
+
+.audio-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(145deg, #181a20 0%, #121317 100%);
+  color: var(--text-muted, #8b949e);
+}
+
+.audio-card-duration {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
 .card-thumbnail {
   width: 100%;
   height: 100%;

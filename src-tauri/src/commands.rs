@@ -925,16 +925,296 @@ pub async fn search_itch_2d_assets(query: String, limit: Option<usize>) -> Resul
     Ok(json!({ "success": true, "assets": assets }))
 }
 
+async fn scrape_pixabay_sounds(query: &str, max_items: usize) -> Result<Vec<Value>, String> {
+    let page_url = if query.is_empty() {
+        "https://pixabay.com/sound-effects/".to_string()
+    } else {
+        format!(
+            "https://pixabay.com/sound-effects/search/{}/",
+            urlencoding::encode(query)
+        )
+    };
+
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+        .cookie_store(true)
+        .build()
+        .map_err(|error| format!("Could not initialize the Pixabay client: {error}"))?;
+
+    let page_response = client
+        .get(&page_url)
+        .header(
+            "Accept",
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        )
+        .header("Accept-Language", "en-US,en;q=0.9")
+        .header("Sec-Fetch-Dest", "document")
+        .header("Sec-Fetch-Mode", "navigate")
+        .header("Sec-Fetch-Site", "none")
+        .header("Sec-Fetch-User", "?1")
+        .send()
+        .await
+        .map_err(|error| format!("Could not reach Pixabay: {error}"))?;
+
+    if !page_response.status().is_success() {
+        return Err(format!("Pixabay returned HTTP {}", page_response.status()));
+    }
+
+    let html = page_response
+        .text()
+        .await
+        .map_err(|error| format!("Could not read Pixabay page: {error}"))?;
+
+    let marker = "window.__BOOTSTRAP_URL__ = '";
+    let Some(start) = html.find(marker) else {
+        return Err("Pixabay bootstrap metadata was not found.".to_string());
+    };
+    let remainder = &html[start + marker.len()..];
+    let Some(end) = remainder.find('\'') else {
+        return Err("Pixabay bootstrap URL was malformed.".to_string());
+    };
+    let bootstrap_path = &remainder[..end];
+    let bootstrap_url = format!("https://pixabay.com{bootstrap_path}");
+
+    let json_response = client
+        .get(&bootstrap_url)
+        .header("Accept", "application/json")
+        .header("Referer", &page_url)
+        .send()
+        .await
+        .map_err(|error| format!("Could not retrieve Pixabay sound data: {error}"))?;
+
+    if !json_response.status().is_success() {
+        return Err(format!(
+            "Pixabay data endpoint returned HTTP {}",
+            json_response.status()
+        ));
+    }
+
+    let data: Value = json_response
+        .json()
+        .await
+        .map_err(|error| format!("Could not parse Pixabay sound catalog: {error}"))?;
+
+    let results = data
+        .get("page")
+        .and_then(|page| page.get("results"))
+        .and_then(|results| results.as_array())
+        .ok_or_else(|| "Pixabay returned an empty results payload.".to_string())?;
+
+    let mut assets = Vec::new();
+    for item in results {
+        let id = item.get("id").and_then(|v| v.as_i64()).unwrap_or(0);
+        if id == 0 {
+            continue;
+        }
+        let name = item
+            .get("name")
+            .and_then(|v| v.as_str())
+            .or_else(|| item.get("alt").and_then(|v| v.as_str()))
+            .unwrap_or("Sound Effect")
+            .to_string();
+        let author = item
+            .get("user")
+            .and_then(|u| u.get("username"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("Pixabay creator")
+            .to_string();
+        let description = item
+            .get("description")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        let sources = item.get("sources");
+        let direct_url = sources
+            .and_then(|s| s.get("src"))
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        if direct_url.is_empty() {
+            continue;
+        }
+        let thumbnail = sources
+            .and_then(|s| s.get("thumbnailUrl"))
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string();
+        let filename = sources
+            .and_then(|s| s.get("filename"))
+            .and_then(|v| v.as_str())
+            .map(ToOwned::to_owned)
+            .unwrap_or_else(|| format!("{}.mp3", sanitize_filename(&name)));
+        let duration = item.get("duration").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let href = item.get("href").and_then(|v| v.as_str()).unwrap_or("");
+        let source_url = if href.starts_with('/') {
+            format!("https://pixabay.com{href}")
+        } else {
+            format!("https://pixabay.com/sound-effects/{href}")
+        };
+        let mut tags = Vec::new();
+        if let Some(tag_list) = item.get("tagList").and_then(|tl| tl.as_array()) {
+            for t in tag_list {
+                if let Some(tag_name) = t.get(0).and_then(|v| v.as_str()) {
+                    tags.push(tag_name.to_string());
+                }
+            }
+        }
+        if tags.is_empty() {
+            tags.push("Audio".to_string());
+            tags.push("Sound Effect".to_string());
+        }
+
+        assets.push(json!({
+            "id": format!("pixabay:{id}"),
+            "name": name,
+            "author": author,
+            "description": description,
+            "thumbnail": thumbnail,
+            "format": "MP3 audio",
+            "tags": tags,
+            "source": "pixabay",
+            "sourceUrl": source_url,
+            "directUrl": direct_url,
+            "filename": filename,
+            "durationSeconds": duration,
+            "license": "Pixabay Content License (Free for commercial use)",
+            "assetKind": "sound",
+        }));
+
+        if assets.len() >= max_items {
+            break;
+        }
+    }
+    Ok(assets)
+}
+
+async fn scrape_itch_sound_assets(query: &str, max_items: usize) -> Result<Vec<Value>, String> {
+    let url = if query.is_empty() {
+        "https://itch.io/game-assets/tag-sound-effects".to_string()
+    } else {
+        format!(
+            "https://itch.io/game-assets/tag-sound-effects?query={}",
+            urlencoding::encode(query)
+        )
+    };
+    let response = reqwest::Client::builder()
+        .user_agent("Assetsbox Desktop/1.0 (+https://github.com/bruhgit/assetsbox)")
+        .build()
+        .map_err(|error| format!("Could not initialize the itch.io client: {error}"))?
+        .get(&url)
+        .send()
+        .await
+        .map_err(|error| format!("Could not reach itch.io: {error}"))?
+        .error_for_status()
+        .map_err(|error| format!("itch.io returned an error: {error}"))?;
+    let html = response
+        .text()
+        .await
+        .map_err(|error| format!("Could not read the itch.io catalog: {error}"))?;
+    let document = Html::parse_document(&html);
+    let card_selector =
+        Selector::parse(".game_cell").map_err(|_| "Could not parse itch.io cards.".to_string())?;
+    let title_selector = Selector::parse(".game_title a")
+        .map_err(|_| "Could not parse itch.io titles.".to_string())?;
+    let author_selector = Selector::parse(".game_author a")
+        .map_err(|_| "Could not parse itch.io authors.".to_string())?;
+    let description_selector = Selector::parse(".game_text")
+        .map_err(|_| "Could not parse itch.io descriptions.".to_string())?;
+    let image_selector =
+        Selector::parse("img").map_err(|_| "Could not parse itch.io images.".to_string())?;
+    let price_selector = Selector::parse(".price_tag, .price_value")
+        .map_err(|_| "Could not parse itch.io prices.".to_string())?;
+    let query_terms: Vec<String> = query
+        .to_ascii_lowercase()
+        .split_whitespace()
+        .map(ToOwned::to_owned)
+        .collect();
+    let mut assets = Vec::new();
+    for card in document.select(&card_selector) {
+        let Some(title) = card.select(&title_selector).next() else {
+            continue;
+        };
+        let Some(card_url) = title.value().attr("href") else {
+            continue;
+        };
+        if !card_url.contains(".itch.io/") {
+            continue;
+        }
+        let name = text_from_element(title);
+        let author = card
+            .select(&author_selector)
+            .next()
+            .map(text_from_element)
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| "itch.io creator".to_string());
+        let description = card
+            .select(&description_selector)
+            .next()
+            .map(text_from_element)
+            .unwrap_or_default();
+        let searchable = format!("{name} {author} {description}").to_ascii_lowercase();
+        if !query_terms.is_empty() && !query_terms.iter().all(|term| searchable.contains(term)) {
+            continue;
+        }
+        let thumbnail = card
+            .select(&image_selector)
+            .next()
+            .and_then(|image| {
+                image
+                    .value()
+                    .attr("data-lazy_src")
+                    .or_else(|| image.value().attr("data-src"))
+                    .or_else(|| image.value().attr("src"))
+            })
+            .unwrap_or_default();
+        let price = card
+            .select(&price_selector)
+            .next()
+            .map(text_from_element)
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| "See itch.io".to_string());
+        assets.push(json!({
+            "id": format!("itchio:{card_url}"),
+            "name": name,
+            "author": author,
+            "description": description,
+            "thumbnail": thumbnail,
+            "price": price,
+            "format": "itch.io sound asset",
+            "tags": ["Audio", "Sound Effect", "itch.io"],
+            "source": "itchio",
+            "sourceUrl": card_url,
+            "assetKind": "sound",
+        }));
+        if assets.len() >= max_items {
+            break;
+        }
+    }
+    Ok(assets)
+}
+
 #[tauri::command(rename_all = "camelCase")]
 pub async fn search_pixabay_sound_effects(
-    _query: String,
-    _limit: Option<usize>,
+    query: String,
+    limit: Option<usize>,
 ) -> Result<Value, String> {
-    // Pixabay's public API currently does not expose audio search. The Electron implementation used an
-    // off-screen webview for this; Tauri intentionally does not scrape around Cloudflare protections.
-    Ok(
-        json!({ "success": false, "error": "Pixabay sound effects are temporarily unavailable in the Tauri build." }),
-    )
+    let max_items = limit.unwrap_or(30).clamp(1, 60);
+    let trimmed = query.trim();
+
+    match scrape_pixabay_sounds(trimmed, max_items).await {
+        Ok(assets) if !assets.is_empty() => {
+            return Ok(json!({ "success": true, "assets": assets, "source": "pixabay" }));
+        }
+        Ok(_) => {}
+        Err(error) => {
+            eprintln!("[Pixabay] Live scraper error: {error}");
+        }
+    }
+
+    match scrape_itch_sound_assets(trimmed, max_items).await {
+        Ok(assets) => Ok(json!({ "success": true, "assets": assets, "source": "itchio" })),
+        Err(fallback_error) => Err(format!("Could not load sound effects: {fallback_error}")),
+    }
 }
 
 #[tauri::command]
@@ -1158,4 +1438,26 @@ pub fn window_maximize(window: tauri::Window) -> Result<(), String> {
 #[tauri::command]
 pub fn window_is_maximized(window: tauri::Window) -> Result<bool, String> {
     window.is_maximized().map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_sound_effects_search_returns_results() {
+        let result = search_pixabay_sound_effects("bell".to_string(), Some(5)).await;
+        assert!(
+            result.is_ok(),
+            "Expected search to succeed: {:?}",
+            result.err()
+        );
+        let val = result.unwrap();
+        assert_eq!(val["success"], true);
+        let assets = val["assets"].as_array().expect("assets array");
+        assert!(!assets.is_empty(), "Expected at least one sound asset");
+        let first = &assets[0];
+        assert!(first["name"].is_string());
+        assert!(first["source"].is_string());
+    }
 }
