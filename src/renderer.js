@@ -68,10 +68,35 @@ const btnClose = document.getElementById('btn-close');
 const iconMaximize = document.getElementById('icon-maximize');
 const iconRestore = document.getElementById('icon-restore');
 
+btnMin?.addEventListener('click', async () => {
+  if (window.electronAPI?.minimize) {
+    await window.electronAPI.minimize();
+  } else if (window.__TAURI__?.core?.invoke) {
+    await window.__TAURI__.core.invoke('window_minimize');
+  }
+});
+
+btnMax?.addEventListener('click', async () => {
+  if (window.electronAPI?.maximize) {
+    await window.electronAPI.maximize();
+  } else if (window.__TAURI__?.core?.invoke) {
+    await window.__TAURI__.core.invoke('window_maximize');
+  }
+});
+
+btnClose?.addEventListener('click', async () => {
+  if (window.electronAPI?.close) {
+    await window.electronAPI.close();
+  } else if (window.__TAURI__?.core?.invoke) {
+    await window.__TAURI__.core.invoke('window_close');
+  } else if (window.__TAURI__?.window?.getCurrentWindow) {
+    window.__TAURI__.window.getCurrentWindow().close();
+  } else {
+    window.close();
+  }
+});
+
 if (window.electronAPI) {
-  btnMin?.addEventListener('click', () => window.electronAPI.minimize());
-  btnMax?.addEventListener('click', () => window.electronAPI.maximize());
-  btnClose?.addEventListener('click', () => window.electronAPI.close());
 
   function updateMaximizeIcons(isMaximized) {
     if (isMaximized) {

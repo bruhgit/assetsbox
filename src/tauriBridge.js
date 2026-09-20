@@ -19,11 +19,67 @@
   };
 
   window.electronAPI = {
-    minimize: () => currentWindow.minimize(),
-    maximize: async () => (await currentWindow.isMaximized() ? currentWindow.unmaximize() : currentWindow.maximize()),
-    close: () => currentWindow.close(),
-    isMaximized: () => currentWindow.isMaximized(),
-    onMaximizedChange: (callback) => currentWindow.onResized(async () => callback(await currentWindow.isMaximized())),
+    minimize: async () => {
+      try {
+        await invoke('window_minimize');
+      } catch {
+        try {
+          await currentWindow.minimize();
+        } catch {}
+      }
+    },
+    maximize: async () => {
+      try {
+        await invoke('window_maximize');
+      } catch {
+        try {
+          if (await currentWindow.isMaximized()) {
+            await currentWindow.unmaximize();
+          } else {
+            await currentWindow.maximize();
+          }
+        } catch {}
+      }
+    },
+    close: async () => {
+      try {
+        await invoke('window_close');
+      } catch {
+        try {
+          await currentWindow.close();
+        } catch {
+          window.close();
+        }
+      }
+    },
+    isMaximized: async () => {
+      try {
+        return await invoke('window_is_maximized');
+      } catch {
+        try {
+          return await currentWindow.isMaximized();
+        } catch {
+          return false;
+        }
+      }
+    },
+    onMaximizedChange: (callback) => {
+      if (currentWindow?.onResized) {
+        currentWindow.onResized(async () => {
+          let max = false;
+          try {
+            max = await invoke('window_is_maximized');
+          } catch {
+            try {
+              max = await currentWindow.isMaximized();
+            } catch {
+              max = false;
+            }
+          }
+          callback(max);
+        });
+      }
+    },
     onOpenStore: () => {},
     onStoreViewOpened: () => {},
     onStoreViewClosed: () => {},

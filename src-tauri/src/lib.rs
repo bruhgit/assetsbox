@@ -45,6 +45,10 @@ pub fn run() {
             commands::cancel_download,
             commands::get_sketchfab_token_status,
             commands::set_sketchfab_token,
+            commands::window_close,
+            commands::window_minimize,
+            commands::window_maximize,
+            commands::window_is_maximized,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run Assetsbox");

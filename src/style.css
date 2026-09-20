@@ -332,6 +332,7 @@ h1, h2, h3, h4, h5, h6 {
 .window-controls {
   display: flex;
   align-items: stretch;
+  -webkit-app-region: no-drag;
 }
 
 .window-btn {
@@ -346,6 +347,14 @@ h1, h2, h3, h4, h5, h6 {
   cursor: pointer;
   outline: none;
   transition: background-color 0.12s ease;
+  -webkit-app-region: no-drag;
+  pointer-events: auto;
+  user-select: none;
+  z-index: 10;
+}
+
+.window-btn svg {
+  pointer-events: none;
 }
 
 .window-btn:hover {
