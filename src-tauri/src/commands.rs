@@ -1416,8 +1416,10 @@ pub fn cancel_download(
 }
 
 #[tauri::command]
-pub fn window_close(window: tauri::Window) -> Result<(), String> {
-    window.close().map_err(|e| e.to_string())
+pub fn window_close(app: tauri::AppHandle, window: tauri::Window) -> Result<(), String> {
+    let _ = window.destroy();
+    app.exit(0);
+    Ok(())
 }
 
 #[tauri::command]
@@ -1459,5 +1461,19 @@ mod tests {
         let first = &assets[0];
         assert!(first["name"].is_string());
         assert!(first["source"].is_string());
+    }
+
+    #[tokio::test]
+    async fn test_sound_effects_empty_query_returns_results() {
+        let result = search_pixabay_sound_effects("".to_string(), Some(10)).await;
+        assert!(
+            result.is_ok(),
+            "Expected search to succeed: {:?}",
+            result.err()
+        );
+        let val = result.unwrap();
+        assert_eq!(val["success"], true);
+        let assets = val["assets"].as_array().expect("assets array");
+        assert!(!assets.is_empty(), "Expected sound assets for empty query");
     }
 }
