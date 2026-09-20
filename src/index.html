@@ -871,6 +871,45 @@
     </div>
   </div>
 
+  <!-- Per-download copyright and license confirmation. This cannot be dismissed by downloading. -->
+  <div id="modal-license-confirm" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="license-modal-title">
+    <div class="modal-card license-modal-dialog">
+      <div class="modal-header">
+        <div>
+          <h3 id="license-modal-title" class="modal-title">License review required</h3>
+          <p class="license-modal-subtitle">Assetsbox records this acceptance locally before it can start the download.</p>
+        </div>
+        <button id="btn-license-close" class="btn-icon-close" type="button" title="Cancel download" aria-label="Cancel download">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body license-modal-body">
+        <div class="license-warning" role="note">
+          <strong>Copyright check</strong>
+          <p>Assetsbox does not grant rights to this asset. The provider’s listing and your intended use determine whether you may use it.</p>
+        </div>
+        <dl class="license-asset-details">
+          <div><dt>Asset</dt><dd id="license-asset-name">—</dd></div>
+          <div><dt>Provider</dt><dd id="license-asset-provider">—</dd></div>
+          <div><dt>Listed license</dt><dd id="license-asset-license">—</dd></div>
+        </dl>
+        <a id="license-source-link" class="license-source-link" href="#" target="_blank" rel="noopener noreferrer">Open official listing and license terms</a>
+        <label class="license-acceptance-check" for="license-confirm-checkbox">
+          <input id="license-confirm-checkbox" type="checkbox">
+          <span>I reviewed the official listing and license terms. They permit my intended use, including attribution, commercial-use, redistribution, and payment requirements where applicable.</span>
+        </label>
+        <p class="license-legal-note">This is a compliance safeguard, not legal advice or a guarantee against copyright claims. Do not download if the license or your rights are unclear.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-license-cancel" class="btn-secondary" type="button">Cancel</button>
+        <button id="btn-license-confirm" class="btn-primary-action" type="button" disabled>Accept license &amp; download</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Persistent Bottom-Left Account Widget -->
   <div id="account-widget" class="account-widget" title="Your Developer Profile (Click to edit)">
     <div id="account-widget-avatar" class="account-widget-avatar"></div>

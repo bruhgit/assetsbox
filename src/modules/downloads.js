@@ -6,6 +6,7 @@ import { state } from './state.js';
 import { showToast } from './toast.js';
 import { switchTab } from './tabs.js';
 import { loadProjectModels } from './projectManager.js';
+import { requireLicenseAcceptance } from './licenseCompliance.js';
 
 export async function initiateDownload(model) {
   if (!window.electronAPI) {
@@ -91,6 +92,12 @@ export async function initiateDownload(model) {
       throw new Error('The selected asset does not have a downloadable file URL.');
     }
 
+    const licenseAcceptance = await requireLicenseAcceptance(model);
+    if (!licenseAcceptance) {
+      if (inspectorDownloadStatus) inspectorDownloadStatus.textContent = 'Download canceled: license acceptance is required.';
+      return;
+    }
+
     const downloadId = `dl-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
 
     const downloadItem = {
@@ -101,6 +108,9 @@ export async function initiateDownload(model) {
       targetDir,
       assetKind,
       sourceId: model.uid || model.id || `${model.source || 'asset'}:${filename}`,
+      license: licenseAcceptance.license,
+      licenseSourceUrl: licenseAcceptance.listingUrl,
+      licenseAcceptedAt: licenseAcceptance.acceptedAt,
       receivedBytes: 0,
       totalBytes: 0,
       percent: 0,
@@ -121,6 +131,8 @@ export async function initiateDownload(model) {
       url: downloadUrl,
       filename,
       targetDirectory: targetDir,
+      licenseAcceptanceId: licenseAcceptance.acceptanceId,
+      assetId: licenseAcceptance.assetId,
     });
   } catch (error) {
     console.error('[Download] Failed to start:', error);

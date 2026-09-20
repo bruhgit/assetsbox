@@ -1771,6 +1771,116 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgba(0, 0, 0, 0.15);
 }
 
+/* ============================================================================
+   Per-download license compliance gate
+   ============================================================================ */
+.license-modal-dialog {
+  width: 560px;
+  max-width: 95vw;
+}
+
+.license-modal-subtitle {
+  margin: 3px 0 0;
+  color: #8b949e;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.license-modal-body {
+  gap: 14px;
+}
+
+.license-warning {
+  padding: 12px 14px;
+  border: 1px solid rgba(210, 153, 34, 0.55);
+  border-radius: 8px;
+  background: rgba(187, 128, 9, 0.1);
+  color: #e3b341;
+}
+
+.license-warning strong {
+  font-size: 13px;
+}
+
+.license-warning p,
+.license-legal-note {
+  margin: 5px 0 0;
+  color: #c9d1d9;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.license-asset-details {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.license-asset-details div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #30363d;
+}
+
+.license-asset-details dt {
+  color: #8b949e;
+  font-size: 12px;
+}
+
+.license-asset-details dd {
+  margin: 0;
+  color: #f0f6fc;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.license-source-link {
+  width: fit-content;
+  color: #58a6ff;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.license-source-link:hover {
+  text-decoration: underline;
+}
+
+.license-source-link.disabled {
+  color: #6e7681;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.license-acceptance-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #c9d1d9;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.license-acceptance-check:has(input:checked) {
+  border-color: #238636;
+  background: rgba(35, 134, 54, 0.1);
+}
+
+.license-acceptance-check input {
+  margin-top: 2px;
+  accent-color: #238636;
+}
+
+.license-legal-note {
+  color: #8b949e;
+  margin: 0;
+}
+
 .btn-primary-action {
   background-color: var(--accent-primary);
   color: #ffffff;

@@ -1,4 +1,5 @@
 mod commands;
+mod license_ledger;
 mod secrets;
 
 use std::collections::{HashMap, HashSet};
@@ -39,6 +40,7 @@ pub fn run() {
             commands::search_itch_2d_assets,
             commands::search_pixabay_sound_effects,
             commands::get_sketchfab_download_url,
+            commands::record_license_acceptance,
             commands::start_download,
             commands::cancel_download,
             commands::get_sketchfab_token_status,

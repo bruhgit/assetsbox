@@ -1,12 +1,16 @@
 {
   "name": "assetsbox",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A Tauri desktop app for managing game assets securely",
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
     "tauri": "tauri",
-    "test": "cargo test --manifest-path src-tauri/Cargo.toml"
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "check:js": "node scripts/check-js.mjs",
+    "check:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check && cargo test --manifest-path src-tauri/Cargo.toml",
+    "verify": "npm run check:js && npm run check:rust",
+    "release:check": "node scripts/release-check.mjs"
   },
   "author": "omerdev",
   "license": "MIT",

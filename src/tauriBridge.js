@@ -66,6 +66,7 @@
     getSketchfabDownloadUrl: ({ modelUid }) => invoke('get_sketchfab_download_url', { modelUid }),
     getSketchfabTokenStatus: () => invoke('get_sketchfab_token_status'),
     setSketchfabToken: (value) => invoke('set_sketchfab_token', { value }),
+    recordLicenseAcceptance: (payload) => invoke('record_license_acceptance', payload),
     searchItch2DAssets: (payload) => invoke('search_itch_2d_assets', payload),
     searchPixabaySoundEffects: (payload) => invoke('search_pixabay_sound_effects', payload),
     startDownload: (payload) => invoke('start_download', payload),

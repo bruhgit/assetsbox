@@ -13,7 +13,7 @@ use tokio::io::AsyncWriteExt;
 use tokio_util::sync::CancellationToken;
 use walkdir::WalkDir;
 
-use crate::secrets;
+use crate::{license_ledger, secrets};
 use crate::{ActiveDownloads, ManagedRoots};
 
 const MODEL_EXTENSIONS: [&str; 11] = [
@@ -995,6 +995,22 @@ pub async fn get_sketchfab_download_url(
     Ok(payload)
 }
 
+#[tauri::command(rename_all = "camelCase")]
+pub fn record_license_acceptance(
+    app: AppHandle,
+    asset_id: String,
+    source: String,
+    license: String,
+    listing_url: String,
+) -> Result<Value, String> {
+    let acceptance = license_ledger::record(&app, &asset_id, &source, &license, &listing_url)?;
+    Ok(json!({
+        "success": true,
+        "acceptanceId": acceptance.id,
+        "acceptedAt": acceptance.accepted_at.to_rfc3339(),
+    }))
+}
+
 fn emit_download(app: &AppHandle, payload: Value) {
     let _ = app.emit("download:progress", payload);
 }
@@ -1008,7 +1024,10 @@ pub async fn start_download(
     url: String,
     filename: String,
     target_directory: String,
+    license_acceptance_id: String,
+    asset_id: String,
 ) -> Result<Value, String> {
+    license_ledger::consume(&app, &license_acceptance_id, &asset_id)?;
     let destination_directory = require_managed_directory(&roots, Path::new(&target_directory))?;
     let parsed_url =
         reqwest::Url::parse(&url).map_err(|_| "The asset download URL is invalid.".to_string())?;

@@ -25,6 +25,7 @@ import { initMarketplaceModule, loadActiveStore, setActiveMarketplaceStore } fro
 import { initInspectorModule, displayModelInInspector } from './modules/inspector.js';
 import { initProjectManagerModule, loadProjectModels } from './modules/projectManager.js';
 import { initDownloadsModule, initiateDownload, renderDownloadsLibrary } from './modules/downloads.js';
+import { initLicenseCompliance } from './modules/licenseCompliance.js';
 
 let storeOpenRequested = false;
 let storeNavigationReady = false;
@@ -517,6 +518,9 @@ initProjectManagerModule();
 
 // 7. Initialize Downloads Module
 initDownloadsModule();
+
+// 8. Every provider download is gated by a one-time, locally recorded license acceptance.
+initLicenseCompliance();
 
 storeNavigationReady = true;
 if (storeOpenRequested) openAssetsboxStoreFromLink();
