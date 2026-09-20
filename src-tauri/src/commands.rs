@@ -1159,4 +1159,3 @@ pub fn window_maximize(window: tauri::Window) -> Result<(), String> {
 pub fn window_is_maximized(window: tauri::Window) -> Result<bool, String> {
     window.is_maximized().map_err(|e| e.to_string())
 }
-
