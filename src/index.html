@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-src 'self' https://sketchfab.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assetsbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Custom Title Bar -->
+  <header id="titlebar" class="titlebar">
+    <div class="titlebar-left">
+      <div id="tabs-container" class="tabs-container">
+        <!-- Engine Selection Tab -->
+        <div class="tab active" id="tab-engine-header" data-tab-id="tab-engine-selector" title="Choose Engine">
+          <svg class="tab-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span class="tab-label">Engine Selection</span>
+          <span class="tab-close" data-close-tab="tab-engine-selector" title="Close">
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M 1,1 L 9,9 M 9,1 L 1,9" stroke="currentColor" stroke-width="1.2"></path>
+            </svg>
+          </span>
+        </div>
+
+        <!-- Select Project Tab -->
+        <div class="tab hidden" id="tab-project-header" data-tab-id="tab-project-selector" title="Select Project">
+          <svg class="tab-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="tab-label">Select Project</span>
+          <span class="tab-close" data-close-tab="tab-project-selector" title="Close">
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M 1,1 L 9,9 M 9,1 L 1,9" stroke="currentColor" stroke-width="1.2"></path>
+            </svg>
+          </span>
+        </div>
+
+        <!-- Marketplace Tab -->
+        <div class="tab hidden" id="tab-marketplace-header" data-tab-id="tab-marketplace" title="Marketplace">
+          <svg class="tab-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          <span class="tab-label" id="marketplace-tab-label">Asset Store</span>
+          <span class="tab-close" data-close-tab="tab-marketplace" title="Close">
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M 1,1 L 9,9 M 9,1 L 1,9" stroke="currentColor" stroke-width="1.2"></path>
+            </svg>
+          </span>
+        </div>
+
+        <!-- Project Manager Tab -->
+        <div class="tab hidden" id="tab-project-manager-header" data-tab-id="tab-project-manager" title="Project Manager">
+          <svg class="tab-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <span class="tab-label">Project Manager</span>
+          <span class="tab-close" data-close-tab="tab-project-manager" title="Close">
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M 1,1 L 9,9 M 9,1 L 1,9" stroke="currentColor" stroke-width="1.2"></path>
+            </svg>
+          </span>
+        </div>
+
+        <!-- Downloads Tab -->
+        <div class="tab hidden" id="tab-downloads-header" data-tab-id="tab-downloads" title="Downloads & Library">
+          <svg class="tab-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span class="tab-label">Downloads</span>
+          <span id="downloads-badge" class="badge hidden">0</span>
+          <span class="tab-close" data-close-tab="tab-downloads" title="Close">
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M 1,1 L 9,9 M 9,1 L 1,9" stroke="currentColor" stroke-width="1.2"></path>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <button id="btn-return-store-page" class="btn-return-store-page hidden" type="button">
+        ← Back to Assetsbox
+      </button>
+
+      <!-- Add Search Tab (+) -->
+      <button id="btn-add-tab" class="btn-tab-action hidden" title="New Search Tab" aria-label="New Search Tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Central Drag Region -->
+    <div class="titlebar-drag-region">
+      <img src="assets/app/app-logo.svg" width="16" height="16" alt="Logo" class="titlebar-brand-icon">
+      <span class="app-brand-title">Assetsbox</span>
+    </div>
+
+    <!-- Right Quick Actions & Window Controls -->
+    <div class="titlebar-right">
+      <div class="quick-actions">
+        <!-- Settings Button -->
+        <button id="btn-settings" class="btn-action" title="Settings" aria-label="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+
+        <!-- Save Button -->
+        <button id="btn-save" class="btn-action" title="Save Library" aria-label="Save">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+        </button>
+
+        <!-- Chevron Menu -->
+        <button id="btn-chevron" class="btn-action btn-chevron" title="More Options" aria-label="More Options">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div id="dropdown-menu" class="dropdown-menu hidden">
+          <div class="menu-item" id="menu-choose-engine">
+            <span>Change Engine</span>
+            <span class="shortcut">Esc</span>
+          </div>
+          <div class="menu-item" id="menu-open-folder">
+            <span>Open Download Folder</span>
+            <span class="shortcut">Ctrl+O</span>
+          </div>
+          <div class="menu-separator"></div>
+          <div class="menu-item" id="menu-settings">
+            <span>Settings</span>
+            <span class="shortcut">Ctrl+,</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="titlebar-divider"></div>
+
+      <!-- Window Control Buttons -->
+      <div class="window-controls">
+        <button id="btn-min" class="window-btn btn-min" title="Minimize" aria-label="Minimize">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <line x1="0" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="1"></line>
+          </svg>
+        </button>
+
+        <button id="btn-max" class="window-btn btn-max" title="Maximize" aria-label="Maximize">
+          <svg id="icon-maximize" class="control-icon" width="10" height="10" viewBox="0 0 10 10">
+            <rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" stroke-width="1"></rect>
+          </svg>
+          <svg id="icon-restore" class="control-icon hidden" width="10" height="10" viewBox="0 0 10 10">
+            <path d="M 2.5,0.5 H 9.5 V 7.5 H 7.5 M 0.5,2.5 H 7.5 V 9.5 H 0.5 Z" fill="none" stroke="currentColor" stroke-width="1"></path>
+          </svg>
+        </button>
+
+        <button id="btn-close" class="window-btn btn-close" title="Close" aria-label="Close">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <path d="M 0.5,0.5 L 9.5,9.5 M 9.5,0.5 L 0.5,9.5" stroke="currentColor" stroke-width="1.2"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Application Main Workspace -->
+  <main class="main-workspace">
+    <!-- VIEW 0: CHOOSE A ENGINE (PRIMARY INITIAL LANDING SCREEN) -->
+    <section id="view-engine-selector" class="view-panel view-engine-selector active">
+      <div class="engine-selector-container">
+        <div class="engine-header">
+          <h1 class="engine-main-title">Choose a Engine</h1>
+          <p class="engine-sub-title">Select your game engine target to enter the marketplace and configure 3D assets</p>
+        </div>
+
+        <div class="engine-cards-grid">
+          <!-- Godot Engine -->
+          <div class="engine-card" data-engine="godot" tabindex="0">
+            <div class="engine-logo-frame">
+              <img src="assets/icons/godot.webp" width="256" height="256" alt="Godot" class="engine-logo-img">
+            </div>
+            <span class="engine-card-name">Godot</span>
+          </div>
+
+          <!-- Unity -->
+          <div class="engine-card" data-engine="unity" tabindex="0">
+            <div class="engine-logo-frame">
+              <img src="assets/icons/unity.png" width="256" height="256" alt="Unity" class="engine-logo-img">
+            </div>
+            <span class="engine-card-name">Unity</span>
+          </div>
+
+          <!-- Unreal Engine -->
+          <div class="engine-card" data-engine="unreal" tabindex="0">
+            <div class="engine-logo-frame">
+              <img src="assets/icons/unreal.svg" width="256" height="256" alt="Unreal Engine" class="engine-logo-img">
+            </div>
+            <span class="engine-card-name">Unreal Engine</span>
+          </div>
+
+          <!-- GameMaker -->
+          <div class="engine-card" data-engine="gamemaker" tabindex="0">
+            <div class="engine-logo-frame">
+              <img src="assets/icons/gamemaker.webp" width="256" height="256" alt="Game Maker" class="engine-logo-img">
+            </div>
+            <span class="engine-card-name">Game Maker</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 0.5: SELECT PROJECT (OPENS AFTER ENGINE SELECTION) -->
+    <section id="view-project-selector" class="view-panel view-project-selector hidden">
+      <div class="project-selector-container">
+        <div class="project-header">
+          <div class="selected-engine-pill">
+            <img id="project-engine-icon" src="assets/icons/godot.webp" width="28" height="28" alt="Engine" class="pill-engine-icon">
+            <span id="project-engine-name">Godot</span>
+          </div>
+          <h1 class="project-main-title">Select Project</h1>
+          <p class="project-sub-title" id="project-sub-title">Select your project directory. The system will verify the engine structure and create the Models directory.</p>
+        </div>
+
+        <div class="project-action-card">
+          <button id="btn-choose-project" class="btn-choose-project" type="button">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              <polyline points="12 11 12 17"></polyline>
+              <polyline points="9 14 12 11 15 14"></polyline>
+            </svg>
+            <span class="btn-choose-project-text">Choose Project Folder</span>
+          </button>
+
+          <!-- Verified Project Info Box -->
+          <div id="project-verified-box" class="project-verified-box hidden">
+            <div class="verified-icon-badge">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2ea043" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <div class="verified-info">
+              <h3 id="verified-project-name">Project Name</h3>
+              <p id="verified-project-path" class="verified-path">C:/path/to/project</p>
+              <p id="verified-models-path" class="verified-models">Models directory: <strong>C:/path/to/project/Models</strong></p>
+              <p id="verified-integration" class="verified-models">Assetsbox Store integration will be installed automatically.</p>
+            </div>
+            <button id="btn-continue-marketplace" class="btn-primary-action">Continue to Profile Setup</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 0.8: ACCOUNT SETUP (DEVELOPER PROFILE IN SETUP FLOW) -->
+    <section id="view-account-setup" class="view-panel view-account-setup hidden">
+      <div class="account-setup-container">
+        <div class="account-setup-header">
+          <h1 class="account-main-title">Setup Profile</h1>
+        </div>
+
+        <div class="account-setup-card">
+          <div class="profile-setup-row">
+            <!-- Circular Avatar Frame with Load Icon Button -->
+            <div class="avatar-circle-wrapper">
+              <div id="setup-avatar-circle" class="avatar-circle-uploader" title="Click to load icon (.png)">
+                <div id="setup-avatar-placeholder" class="avatar-circle-placeholder">
+                  <svg class="avatar-upload-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                  <span class="avatar-circle-text">Load Icon</span>
+                </div>
+                <img id="setup-avatar-img" class="avatar-circle-img hidden" alt="Profile Icon">
+              </div>
+              <input type="file" id="setup-avatar-file-input" accept="image/png, image/jpeg, image/webp" class="hidden">
+            </div>
+
+            <!-- Name Input Box -->
+            <div class="profile-setup-fields">
+              <label for="setup-account-name" class="profile-field-label">Name</label>
+              <input type="text" id="setup-account-name" class="profile-name-input" placeholder="Enter developer name" value="Developer" maxlength="28" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="account-setup-footer">
+            <button id="btn-complete-account-setup" class="btn-primary-action btn-setup-action" type="button">
+              <span>Enter 3D Workspace</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-marketplace" class="view-panel hidden">
+      <!-- Top Engine Bar -->
+      <div class="active-engine-bar">
+        <div class="active-engine-badge">
+          <span class="engine-indicator-dot"></span>
+          <span>Target Engine:</span>
+          <strong id="label-active-engine">Godot</strong>
+        </div>
+        <button id="btn-switch-engine" class="btn-small-neutral">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span>Choose Another Engine</span>
+        </button>
+      </div>
+
+      <div id="store-tabs" class="store-tabs" role="tablist" aria-label="Asset stores">
+        <button type="button" class="store-tab active" data-store="3d" role="tab" aria-selected="true">3D Store</button>
+        <button type="button" class="store-tab" data-store="2d" role="tab" aria-selected="false">2D Store</button>
+        <button type="button" class="store-tab" data-store="sound" role="tab" aria-selected="false">Sound Store</button>
+      </div>
+
+      <!-- Search & Filters Toolbar -->
+      <div class="search-toolbar">
+        <div class="search-input-wrapper">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="search-input" placeholder="Search 3D models (characters, weapons, vehicles, props)..." value="sword">
+          <button id="btn-clear-search" class="btn-clear-search hidden" title="Clear search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          <button id="btn-search" class="btn-primary-search">Search</button>
+        </div>
+
+        <!-- Category Filter Chips -->
+        <div class="category-chips store-3d-controls" id="category-chips">
+          <button class="chip active" data-category="sword">Weapons & Swords</button>
+          <button class="chip" data-category="character">Characters</button>
+          <button class="chip" data-category="vehicle">Vehicles</button>
+          <button class="chip" data-category="architecture">Architecture</button>
+          <button class="chip" data-category="furniture">Furniture</button>
+          <button class="chip" data-category="nature">Nature & Rocks</button>
+          <button class="chip" data-category="scifi">Sci-Fi</button>
+        </div>
+
+        <div class="search-filters store-3d-controls" aria-label="Search filters">
+          <label class="select-filter" for="filter-file-format">
+            <span>File format</span>
+            <select id="filter-file-format">
+              <option value="all">All formats</option>
+              <option value="glb">.glb</option>
+              <option value="gltf">.gltf</option>
+              <option value="usdz">.usdz</option>
+              <option value="source">Source files</option>
+            </select>
+          </label>
+
+          <label class="select-filter" for="filter-license">
+            <span>License</span>
+            <select id="filter-license">
+              <option value="all">All licenses</option>
+              <option value="cc0">CC0 / Public Domain</option>
+              <option value="cc-by">CC Attribution</option>
+              <option value="cc-by-sa">CC Attribution-ShareAlike</option>
+              <option value="cc-by-nc">CC Attribution-NonCommercial</option>
+              <option value="standard">Standard license</option>
+            </select>
+          </label>
+
+          <button id="btn-clear-filters" class="btn-clear-filters" type="button">Clear filters</button>
+        </div>
+      </div>
+
+      <!-- Results Meta -->
+      <div class="results-header">
+        <div class="results-meta">
+          <span id="results-count" class="results-count">Ready to search...</span>
+          <span id="marketplace-source-tag" class="source-tag">Sketchfab API</span>
+        </div>
+        <div class="results-actions store-3d-controls">
+          <label class="toggle-checkbox">
+            <input type="checkbox" id="chk-downloadable-only" checked>
+            <span>Downloadable models only</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Models Grid -->
+      <div class="models-grid" id="models-grid"></div>
+    </section>
+
+    <!-- VIEW 2: 3D Model Inspector -->
+    <section id="view-inspector" class="view-panel hidden">
+      <div class="inspector-layout">
+        <div class="viewport-column">
+          <div class="viewport-header">
+            <button id="btn-back-to-market" class="btn-secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              <span>Back to Marketplace</span>
+            </button>
+            <h2 id="inspector-title" class="inspector-model-title">Model Title</h2>
+          </div>
+          <div class="viewport-container" id="viewport-container">
+            <iframe id="sketchfab-viewer-frame" class="viewer-frame" src="" allow="autoplay; fullscreen; vr" allowfullscreen></iframe>
+            <div id="viewer-placeholder" class="viewer-placeholder">
+              <div class="spinner"></div>
+              <span>Loading 3D Viewport...</span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="details-column">
+          <div class="details-section">
+            <h3 class="section-title">Model Specifications</h3>
+            <div class="detail-row">
+              <span class="detail-label">Creator</span>
+              <span id="inspector-author" class="detail-val">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Triangles</span>
+              <span id="inspector-faces" class="detail-val">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Vertices</span>
+              <span id="inspector-vertices" class="detail-val">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">License</span>
+              <span id="inspector-license" class="detail-val badge-license">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Target Format</span>
+              <span class="detail-val" id="inspector-format-target">glTF / GLB</span>
+            </div>
+          </div>
+
+          <div class="details-section">
+            <h3 class="section-title">Download Asset</h3>
+            <p class="section-desc">Download model files directly to your target engine project folder.</p>
+            <button id="btn-inspect-download" class="btn-download-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Download for Engine</span>
+            </button>
+            <div id="inspector-download-status" class="download-status-banner hidden"></div>
+          </div>
+
+          <div class="details-section">
+            <h3 class="section-title">Download Destination</h3>
+            <div class="target-folder-display">
+              <span id="display-target-dir" class="dir-path">Loading folder...</span>
+              <button id="btn-change-dir-inspector" class="btn-small">Change</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- VIEW 3: Downloads & Local Library -->
+    <section id="view-downloads" class="view-panel hidden">
+      <div class="downloads-container">
+        <div class="downloads-header">
+          <div>
+            <h2>Downloads & Local Library</h2>
+            <p class="subtitle">3D assets downloaded for your game engines</p>
+          </div>
+          <button id="btn-open-downloads-folder" class="btn-secondary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span>Open in Explorer</span>
+          </button>
+        </div>
+
+        <div class="downloads-subgroup">
+          <h3 class="group-title">Active Downloads</h3>
+          <div id="active-downloads-list" class="downloads-list">
+            <div class="empty-state" id="empty-active-downloads">
+              <span>No downloads currently in progress.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="downloads-subgroup">
+          <h3 class="group-title">Saved 3D Assets</h3>
+          <div id="completed-downloads-list" class="completed-grid">
+            <div class="empty-state" id="empty-completed-downloads">
+              <span>No downloaded models yet. Browse the Marketplace to download assets.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: PROJECT MANAGER (Engine Models Management) -->
+    <section id="view-project-manager" class="view-panel hidden">
+      <div class="project-manager-container">
+        <!-- Top Toolbar -->
+        <div class="pm-header">
+          <div class="pm-header-left">
+            <div class="pm-title-row">
+              <h2 class="pm-title">Project Manager</h2>
+              <span id="pm-engine-badge" class="badge-engine">Godot</span>
+            </div>
+            <p class="pm-subtitle" id="pm-models-dir-label">Managing 3D assets in project folder</p>
+          </div>
+          <div class="pm-header-actions">
+            <button id="btn-pm-import" class="btn-primary-action" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>Import Model...</span>
+            </button>
+            <button id="btn-pm-install-store" class="btn-secondary" type="button" title="Install or update the Assetsbox Store integration for this project">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v12"></path>
+                <path d="m7 9 5 5 5-5"></path>
+                <path d="M5 20h14"></path>
+              </svg>
+              <span>Install Store Extension</span>
+            </button>
+            <button id="btn-pm-refresh" class="btn-secondary" type="button" title="Refresh models list">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Refresh</span>
+            </button>
+            <button id="btn-pm-open-folder" class="btn-secondary" type="button" title="Open Models Folder in Explorer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span>Open in Explorer</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Engine Reference Bar -->
+        <div class="pm-engine-info-card">
+          <div class="pm-engine-info-content">
+            <span class="pm-info-title">Engine Asset URI Pattern:</span>
+            <code id="pm-engine-pattern" class="pm-pattern-code">res://Models/&lt;filename&gt;</code>
+            <span class="pm-info-desc" id="pm-engine-desc">3D models are stored in your project's Models directory and indexed by the engine.</span>
+            <span class="pm-drop-hint">You can also drag supported model files onto this page to import them.</span>
+          </div>
+          <span id="pm-models-count" class="pm-count-badge">0 Models</span>
+        </div>
+
+        <!-- Models Grid -->
+        <div id="pm-models-grid" class="pm-models-grid">
+          <!-- Populated dynamically by renderer.js -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Titlebar Context Menu (Right-Click Menu) -->
+  <div id="titlebar-context-menu" class="context-menu hidden">
+    <div class="context-menu-item" id="ctx-open-store">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>Asset Store</span>
+    </div>
+    <div class="context-menu-item" id="ctx-open-pm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+        <line x1="8" y1="21" x2="16" y2="21"></line>
+        <line x1="12" y1="17" x2="12" y2="21"></line>
+      </svg>
+      <span>Project Manager</span>
+    </div>
+    <div class="context-menu-item" id="ctx-open-downloads">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      <span>Downloads & Library</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" id="ctx-open-folder">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span>Open Models Folder</span>
+      <span class="context-menu-shortcut">Ctrl+O</span>
+    </div>
+    <div class="context-menu-item" id="ctx-settings">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+      <span>Settings</span>
+      <span class="context-menu-shortcut">Ctrl+,</span>
+    </div>
+  </div>
+
+  <!-- Animated In-App Toast Container (No harsh alerts!) -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Enterprise Settings Modal (Multi-Section Control Center) -->
+  <div id="modal-settings" class="modal-backdrop hidden">
+    <div class="modal-card settings-modal-dialog">
+      <div class="settings-modal-header">
+        <div class="settings-header-title-group">
+          <div class="settings-header-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="modal-title">Hub Preferences</h3>
+            <p class="settings-subtitle">Manage game engine, project paths, developer identity, and API tokens</p>
+          </div>
+        </div>
+        <button id="btn-close-settings" class="btn-icon-close" title="Close Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="settings-layout">
+        <!-- Settings Left Navigation Sidebar -->
+        <aside class="settings-sidebar">
+          <button class="settings-nav-btn active" data-settings-target="section-settings-engine">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Engine &amp; Project</span>
+          </button>
+          <button class="settings-nav-btn" data-settings-target="section-settings-profile">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>Developer Profile</span>
+          </button>
+          <button class="settings-nav-btn" data-settings-target="section-settings-api">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+            </svg>
+            <span>API &amp; Services</span>
+          </button>
+          <button class="settings-nav-btn" data-settings-target="section-settings-system">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            <span>Setup &amp; System</span>
+          </button>
+        </aside>
+
+        <!-- Settings Right Content Area -->
+        <div class="settings-content-area">
+          <!-- SECTION 1: ENGINE & PROJECT -->
+          <div id="section-settings-engine" class="settings-section active">
+            <div class="settings-section-header">
+              <h4 class="settings-section-title">Game Engine Target</h4>
+              <p class="settings-section-desc">Choose your engine to calibrate 3D export formats and asset directory paths.</p>
+            </div>
+
+            <!-- Visual Engine Cards Selector -->
+            <div class="settings-engine-grid">
+              <div class="settings-engine-card" data-engine-choice="godot">
+                <div class="settings-engine-logo-frame">
+                  <img src="assets/icons/godot.webp" alt="Godot" width="36" height="36">
+                </div>
+                <div class="settings-engine-info">
+                  <span class="settings-engine-name">Godot</span>
+                  <span class="settings-engine-format">glTF 2.0 / .tscn</span>
+                </div>
+                <div class="settings-engine-check">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+              </div>
+
+              <div class="settings-engine-card" data-engine-choice="unity">
+                <div class="settings-engine-logo-frame">
+                  <img src="assets/icons/unity.png" alt="Unity" width="36" height="36">
+                </div>
+                <div class="settings-engine-info">
+                  <span class="settings-engine-name">Unity</span>
+                  <span class="settings-engine-format">glTF / FBX</span>
+                </div>
+                <div class="settings-engine-check">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+              </div>
+
+              <div class="settings-engine-card" data-engine-choice="unreal">
+                <div class="settings-engine-logo-frame">
+                  <img src="assets/icons/unreal.svg" alt="Unreal Engine" width="36" height="36">
+                </div>
+                <div class="settings-engine-info">
+                  <span class="settings-engine-name">Unreal Engine</span>
+                  <span class="settings-engine-format">glTF / FBX</span>
+                </div>
+                <div class="settings-engine-check">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+              </div>
+
+              <div class="settings-engine-card" data-engine-choice="gamemaker">
+                <div class="settings-engine-logo-frame">
+                  <img src="assets/icons/gamemaker.webp" alt="Game Maker" width="36" height="36">
+                </div>
+                <div class="settings-engine-info">
+                  <span class="settings-engine-name">Game Maker</span>
+                  <span class="settings-engine-format">glTF / OBJ</span>
+                </div>
+                <div class="settings-engine-check">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-divider"></div>
+
+            <!-- Project Root Directory -->
+            <div class="form-group">
+              <label for="settings-project-path">Project Root Directory</label>
+              <div class="input-with-button">
+                <input type="text" id="settings-project-path" readonly placeholder="No project selected">
+                <button id="btn-settings-browse-project" class="btn-small" type="button">Select Project...</button>
+              </div>
+              <small class="form-help" id="settings-project-validation-help">
+                Directory will be strictly validated for the selected engine (e.g. project.godot or .godot/ for Godot).
+              </small>
+            </div>
+
+            <!-- Models Directory -->
+            <div class="form-group">
+              <label for="settings-download-path">3D Models Directory</label>
+              <div class="input-with-button">
+                <input type="text" id="settings-download-path" readonly placeholder="Models directory">
+                <button id="btn-settings-open-folder" class="btn-small" type="button" title="Open in File Explorer">Explorer</button>
+                <button id="btn-settings-browse-download" class="btn-small" type="button">Change...</button>
+              </div>
+              <small class="form-help">Destination folder where marketplace 3D models and textures are placed.</small>
+            </div>
+          </div>
+
+          <!-- SECTION 2: DEVELOPER PROFILE -->
+          <div id="section-settings-profile" class="settings-section hidden">
+            <div class="settings-section-header">
+              <h4 class="settings-section-title">Setup Profile</h4>
+              <p class="settings-section-desc">Upload your custom profile icon (.png) and customize your developer name.</p>
+            </div>
+
+            <div class="profile-setup-row">
+              <!-- Circular Avatar Frame with Load Icon Button -->
+              <div class="avatar-circle-wrapper">
+                <div id="settings-avatar-circle" class="avatar-circle-uploader" title="Click to load icon (.png)">
+                  <div id="settings-avatar-placeholder" class="avatar-circle-placeholder">
+                    <svg class="avatar-upload-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                      <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                    <span class="avatar-circle-text">Load Icon</span>
+                  </div>
+                  <img id="settings-avatar-img" class="avatar-circle-img hidden" alt="Profile Icon">
+                </div>
+                <input type="file" id="settings-avatar-file-input" accept="image/png, image/jpeg, image/webp" class="hidden">
+              </div>
+
+              <!-- Name Input Box -->
+              <div class="profile-setup-fields">
+                <label for="settings-profile-name" class="profile-field-label">Name</label>
+                <input type="text" id="settings-profile-name" class="profile-name-input" placeholder="Enter developer name" maxlength="28" autocomplete="off">
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: API & SERVICES -->
+          <div id="section-settings-api" class="settings-section hidden">
+            <div class="settings-section-header">
+              <h4 class="settings-section-title">Marketplace API Credentials</h4>
+              <p class="settings-section-desc">Sketchfab model downloads use your personal token. itch.io purchase pages open in Assetsbox; Pixabay sound effects are listed through the in-app scraper.</p>
+            </div>
+
+            <div class="form-group">
+              <label for="settings-sketchfab-token">Sketchfab API Token</label>
+              <div class="input-with-button">
+                <input type="password" id="settings-sketchfab-token" placeholder="Paste your Sketchfab API Token">
+                <button id="btn-settings-toggle-token" class="btn-small" type="button">Show</button>
+              </div>
+              <small class="form-help">
+                Get your free token: Log in to sketchfab.com &gt; Account Settings &gt; Password &amp; API &gt; API Token.
+              </small>
+            </div>
+
+            <div class="settings-status-box" id="settings-api-status-box">
+              <div class="settings-status-indicator" id="settings-api-indicator"></div>
+              <div class="settings-status-text">
+                <strong id="settings-api-status-title">API Token Status</strong>
+                <span id="settings-api-status-desc">Validating token configuration...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 4: SETUP & SYSTEM -->
+          <div id="section-settings-system" class="settings-section hidden">
+            <div class="settings-section-header">
+              <h4 class="settings-section-title">Setup &amp; Preferences</h4>
+              <p class="settings-section-desc">Manage startup behavior, reset wizards, or clear cached local states.</p>
+            </div>
+
+            <div class="settings-system-card">
+              <div class="settings-system-info">
+                <strong>Initial Setup Wizard</strong>
+                <p>By default, setup is skipped because your preferences are saved. You can re-run the setup wizard from step 1 at any time.</p>
+              </div>
+              <button id="btn-settings-relaunch-wizard" class="btn-secondary" type="button">Relaunch Setup Wizard</button>
+            </div>
+
+            <div class="settings-system-card" style="margin-top: 14px;">
+              <div class="settings-system-info">
+                <strong>Downloads History</strong>
+                <p>Clear the local list of completed model downloads in your session library (does not delete physical model files on disk).</p>
+              </div>
+              <button id="btn-settings-clear-history" class="btn-secondary" type="button">Clear History</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-cancel-settings" class="btn-secondary" type="button">Cancel</button>
+        <button id="btn-save-settings" class="btn-primary-action" type="button">Save &amp; Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Persistent Bottom-Left Account Widget -->
+  <div id="account-widget" class="account-widget" title="Your Developer Profile (Click to edit)">
+    <div id="account-widget-avatar" class="account-widget-avatar"></div>
+    <div class="account-widget-info">
+      <span id="account-widget-name" class="account-widget-name">Developer</span>
+      <span class="account-widget-status">
+        <span class="status-indicator"></span>
+        Active
+      </span>
+    </div>
+  </div>
+
+  <script src="tauriBridge.js"></script>
+  <script type="module" src="renderer.js"></script>
+</body>
+</html>

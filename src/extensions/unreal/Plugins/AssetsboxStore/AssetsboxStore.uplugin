@@ -1,0 +1,19 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0.0",
+  "FriendlyName": "Assetsbox Store",
+  "Description": "Opens the Assetsbox desktop asset store from the Unreal Editor.",
+  "Category": "Editor",
+  "CreatedBy": "Assetsbox",
+  "CanContainContent": false,
+  "IsBetaVersion": false,
+  "EnabledByDefault": true,
+  "Modules": [
+    {
+      "Name": "AssetsboxStore",
+      "Type": "Editor",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

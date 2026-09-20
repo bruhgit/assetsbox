@@ -1,0 +1,20 @@
+{
+  "name": "assetsbox",
+  "version": "1.0.0",
+  "description": "A Tauri desktop app for managing game assets securely",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml"
+  },
+  "author": "omerdev",
+  "license": "MIT",
+  "dependencies": {
+    "@cds/city": "^1.1.0",
+    "@tauri-apps/api": "^2.11.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.5"
+  }
+}

@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Secrets and local encrypted vaults
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+secrets.aes.json
+secrets.aes.tmp
+vault.hold
+
+# Packaged application output
+dist/
+release/
+out/
+src-tauri/target/
+*.asar
+*.blockmap
+
+# Legacy packaging assets; the Tauri bundle uses src/assets/build/icon.ico.
+/assets/
+/build/
+
+# Local Electron Builder / updater files
+builder-effective-config.yaml
+latest*.yml
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local verification profile
+.verify-user-data/

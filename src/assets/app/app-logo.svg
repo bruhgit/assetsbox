@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <filter id="cube-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Clean dark squircle container -->
+  <rect width="512" height="512" rx="115" fill="#151619" />
+
+  <!-- Low-Poly Faceted Isometric Cube (without inner floating cube) -->
+  <g filter="url(#cube-shadow)">
+    <!-- TOP FACE FACETS -->
+    <polygon points="256,54 64,164 256,178" fill="#f4f6fa" />
+    <polygon points="256,54 448,164 256,178" fill="#d9dfeb" />
+    <polygon points="64,164 256,274 256,178" fill="#c4ccd9" />
+    <polygon points="448,164 256,274 256,178" fill="#abb5c4" />
+
+    <!-- LEFT FACE FACETS (Recessed Faceted Cavity) -->
+    <polygon points="64,164 256,274 192,298" fill="#7d8797" />
+    <polygon points="64,164 64,384 192,298" fill="#58606f" />
+    <polygon points="64,384 256,494 192,298" fill="#424854" />
+    <polygon points="192,298 256,274 256,394" fill="#4d5563" />
+    <polygon points="192,298 256,394 256,494" fill="#353b45" />
+
+    <!-- RIGHT FACE FACETS (Deep Shadow Cavity) -->
+    <polygon points="448,164 256,274 320,298" fill="#414753" />
+    <polygon points="448,164 448,384 320,298" fill="#2d323c" />
+    <polygon points="448,384 256,494 320,298" fill="#1f2229" />
+    <polygon points="320,298 256,274 256,394" fill="#303641" />
+    <polygon points="320,298 256,394 256,494" fill="#181b21" />
+  </g>
+</svg>
