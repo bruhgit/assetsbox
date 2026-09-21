@@ -13,6 +13,8 @@ use tauri::{AppHandle, Manager};
 const CREDENTIAL_SERVICE: &str = "com.omerdev.assetsbox";
 const CREDENTIAL_ACCOUNT: &str = "aes-256-gcm-vault-key";
 const VAULT_FILE: &str = "secrets.aes.json";
+const VAULT_AUTHENTICATION_ERROR: &str =
+    "The encrypted vault could not be authenticated. Your secret was not read.";
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct SecretValues {
@@ -64,6 +66,42 @@ fn vault_key() -> Result<[u8; 32], String> {
         .map_err(|_| "The stored vault key has an invalid length. Delete the Assetsbox credential and add the token again.".to_string())
 }
 
+fn reset_vault_key() -> Result<(), String> {
+    let entry = keyring::Entry::new(CREDENTIAL_SERVICE, CREDENTIAL_ACCOUNT)
+        .map_err(|error| format!("Could not access Windows Credential Manager: {error}"))?;
+    match entry.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(error) => Err(format!(
+            "Could not reset the vault key in Windows Credential Manager: {error}"
+        )),
+    }
+}
+
+fn backup_unreadable_vault(app: &AppHandle) -> Result<(), String> {
+    let path = vault_path(app)?;
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let backup_path = path.with_file_name(format!(
+        "secrets.unreadable-{}-{:016x}.aes.json",
+        std::process::id(),
+        rand::random::<u64>()
+    ));
+    fs::rename(&path, &backup_path).map_err(|error| {
+        format!("Could not preserve the unreadable encrypted vault before recovery: {error}")
+    })
+}
+
+fn recover_unreadable_vault(app: &AppHandle) -> Result<(), String> {
+    // The vault is AES-GCM authenticated. A failed authentication means the
+    // local ciphertext and Credential Manager key no longer match, so the old
+    // values cannot be recovered. Preserve the ciphertext for diagnostics,
+    // then create an independent vault for the new token.
+    backup_unreadable_vault(app)?;
+    reset_vault_key()
+}
+
 fn decrypt_vault(app: &AppHandle) -> Result<SecretValues, String> {
     let path = vault_path(app)?;
     if !path.exists() {
@@ -92,9 +130,7 @@ fn decrypt_vault(app: &AppHandle) -> Result<SecretValues, String> {
         .map_err(|_| "Could not initialize AES-256-GCM.".to_string())?;
     let plaintext = cipher
         .decrypt(Nonce::from_slice(&nonce_bytes), ciphertext.as_ref())
-        .map_err(|_| {
-            "The encrypted vault could not be authenticated. Your secret was not read.".to_string()
-        })?;
+        .map_err(|_| VAULT_AUTHENTICATION_ERROR.to_string())?;
 
     serde_json::from_slice(&plaintext)
         .map_err(|error| format!("Could not decode the decrypted vault: {error}"))
@@ -151,10 +187,18 @@ pub fn get(app: &AppHandle, name: &str) -> Result<Option<String>, String> {
     Ok(decrypt_vault(app)?.values.get(name).cloned())
 }
 
-pub fn set(app: &AppHandle, name: &str, value: &str) -> Result<(), String> {
-    let mut vault = decrypt_vault(app)?;
+pub fn set_with_recovery(app: &AppHandle, name: &str, value: &str) -> Result<bool, String> {
+    let (mut vault, recovered) = match decrypt_vault(app) {
+        Ok(vault) => (vault, false),
+        Err(error) if error == VAULT_AUTHENTICATION_ERROR => {
+            recover_unreadable_vault(app)?;
+            (SecretValues::default(), true)
+        }
+        Err(error) => return Err(error),
+    };
     vault.values.insert(name.to_string(), value.to_string());
-    encrypt_vault(app, &vault)
+    encrypt_vault(app, &vault)?;
+    Ok(recovered)
 }
 
 pub fn remove(app: &AppHandle, name: &str) -> Result<(), String> {

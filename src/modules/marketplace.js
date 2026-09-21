@@ -188,6 +188,13 @@ function escapeHtml(value) {
   })[character]);
 }
 
+function errorMessage(error, fallback) {
+  if (typeof error === 'string' && error.trim()) return error;
+  if (error?.message && typeof error.message === 'string') return error.message;
+  if (error?.error && typeof error.error === 'string') return error.error;
+  return fallback;
+}
+
 let activeAudio = null;
 let activeAudioBtn = null;
 
@@ -351,13 +358,28 @@ async function fetchPixabaySoundAssets(query, { onDownload, onOpenSource } = {})
   if (resultsCount) resultsCount.textContent = 'Loading live Pixabay sound effects...';
   modelsGrid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;"><div class="spinner" style="margin: 0 auto 12px auto;"></div><span>Loading live sound effects...</span></div>';
 
-  const result = await window.electronAPI.searchPixabaySoundEffects({ query, limit: 30 });
-  if (!result.success) {
-    if (resultsCount) resultsCount.textContent = 'Sound effects could not be loaded.';
-    modelsGrid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><span>${escapeHtml(result.error || 'Could not load sound effects.')}</span></div>`;
+  if (!window.electronAPI?.searchPixabaySoundEffects) {
+    const message = 'The Pixabay catalog is available only in the packaged Tauri desktop app. Rebuild and restart Assetsbox.';
+    if (resultsCount) resultsCount.textContent = 'Pixabay catalog is unavailable.';
+    modelsGrid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><span>${escapeHtml(message)}</span></div>`;
     return;
   }
-  renderExternalAssets(result.assets, { storeKey: 'sound', onDownload, onOpenSource });
+
+  try {
+    const result = await window.electronAPI.searchPixabaySoundEffects({ query, limit: 30 });
+    if (!result?.success) {
+      const message = result?.error || 'Could not load sound effects.';
+      if (resultsCount) resultsCount.textContent = 'Sound effects could not be loaded.';
+      modelsGrid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><span>${escapeHtml(message)}</span></div>`;
+      return;
+    }
+    renderExternalAssets(result.assets || [], { storeKey: 'sound', onDownload, onOpenSource });
+  } catch (error) {
+    const message = errorMessage(error, 'Could not load sound effects.');
+    console.warn('[Marketplace] Pixabay search failed:', error);
+    if (resultsCount) resultsCount.textContent = 'Sound effects could not be loaded.';
+    modelsGrid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><span>${escapeHtml(message)}</span></div>`;
+  }
 }
 
 export function loadActiveStore({ onInspect, onDownload, onOpenSource }) {

@@ -377,9 +377,11 @@ btnSettingsClearHistory?.addEventListener('click', () => {
 btnSaveSettings?.addEventListener('click', () => {
   const token = settingsSketchfabToken?.value.trim() || '';
   const saveSettings = async () => {
+    let vaultRecovered = false;
     if (sketchfabTokenDirty) {
       const secretResult = await window.electronAPI?.setSketchfabToken?.(token);
       state.sketchfabTokenConfigured = Boolean(secretResult?.configured);
+      vaultRecovered = Boolean(secretResult?.recovered);
     }
 
     const name = settingsProfileName?.value.trim() || 'Developer';
@@ -388,7 +390,13 @@ btnSaveSettings?.addEventListener('click', () => {
     modalSettings?.classList.add('hidden');
     if (settingsSketchfabToken) settingsSketchfabToken.value = '';
     updateApiStatusBox(state.sketchfabTokenConfigured);
-    showToast('Settings saved successfully.', 'success');
+    showToast(
+      vaultRecovered
+        ? 'The unreadable token vault was backed up and reset. Your new token was saved.'
+        : 'Settings saved successfully.',
+      'success',
+      vaultRecovered ? 6000 : 2200,
+    );
   };
   saveSettings().catch((error) => showToast(`Settings could not be saved: ${error.message}`, 'error'));
 });

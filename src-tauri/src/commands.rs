@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::process::Command;
 use std::sync::MutexGuard;
 
 use chrono::{DateTime, Local};
@@ -25,6 +26,44 @@ const EXTRACTABLE_MODEL_EXTENSIONS: [&str; 10] = [
 const MAX_ZIP_ENTRIES: usize = 5_000;
 const MAX_ZIP_UNCOMPRESSED_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 const SKETCHFAB_TOKEN_KEY: &str = "sketchfab_token";
+const PIXABAY_BROWSER_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+const PIXABAY_MAX_RESPONSE_BYTES: usize = 10 * 1024 * 1024;
+
+struct TemporaryCookieFile {
+    path: PathBuf,
+}
+
+impl TemporaryCookieFile {
+    fn create() -> Result<Self, String> {
+        for _ in 0..3 {
+            let path = std::env::temp_dir().join(format!(
+                "assetsbox-pixabay-{}-{:016x}.cookies",
+                std::process::id(),
+                rand::random::<u64>()
+            ));
+            match fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+            {
+                Ok(_) => return Ok(Self { path }),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => {
+                    return Err(format!(
+                        "Could not create the temporary Pixabay session file: {error}"
+                    ));
+                }
+            }
+        }
+        Err("Could not allocate a temporary Pixabay session file.".to_string())
+    }
+}
+
+impl Drop for TemporaryCookieFile {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.path);
+    }
+}
 
 #[derive(Serialize)]
 pub struct BasicResult {
@@ -925,6 +964,84 @@ pub async fn search_itch_2d_assets(query: String, limit: Option<usize>) -> Resul
     Ok(json!({ "success": true, "assets": assets }))
 }
 
+async fn curl_pixabay_request(
+    url: String,
+    accept: String,
+    referer: Option<String>,
+    cookie_path: Option<PathBuf>,
+    store_cookies: bool,
+) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || {
+        #[cfg(target_os = "windows")]
+        let mut command = Command::new("curl.exe");
+        #[cfg(not(target_os = "windows"))]
+        let mut command = Command::new("curl");
+
+        command
+            .arg("--silent")
+            .arg("--show-error")
+            .arg("--fail")
+            .arg("--location")
+            .arg("--compressed")
+            .arg("--max-time")
+            .arg("20")
+            .arg("--max-filesize")
+            .arg(PIXABAY_MAX_RESPONSE_BYTES.to_string())
+            .arg("--user-agent")
+            .arg(PIXABAY_BROWSER_USER_AGENT)
+            .arg("--header")
+            .arg(format!("Accept: {accept}"))
+            .arg("--header")
+            .arg("Accept-Language: en-US,en;q=0.9")
+            .arg("--header")
+            .arg("Sec-Fetch-Dest: document")
+            .arg("--header")
+            .arg("Sec-Fetch-Mode: navigate")
+            .arg("--header")
+            .arg("Sec-Fetch-Site: none");
+
+        if let Some(referer) = referer {
+            command.arg("--referer").arg(referer);
+        } else {
+            command.arg("--header").arg("Sec-Fetch-User: ?1");
+        }
+        if let Some(cookie_path) = cookie_path {
+            if store_cookies {
+                command.arg("--cookie-jar").arg(cookie_path);
+            } else {
+                command.arg("--cookie").arg(cookie_path);
+            }
+        }
+
+        let output = command.arg(url).output().map_err(|error| {
+            format!("Could not start the Pixabay compatibility request: {error}")
+        })?;
+        if !output.status.success() {
+            let diagnostic = String::from_utf8_lossy(&output.stderr);
+            let diagnostic = diagnostic.trim();
+            let diagnostic = diagnostic.chars().take(240).collect::<String>();
+            return Err(if diagnostic.is_empty() {
+                format!(
+                    "Pixabay compatibility request exited with {}",
+                    output.status
+                )
+            } else {
+                format!("Pixabay compatibility request failed: {diagnostic}")
+            });
+        }
+        if output.stdout.is_empty() {
+            return Err("Pixabay compatibility request returned an empty response.".to_string());
+        }
+        if output.stdout.len() > PIXABAY_MAX_RESPONSE_BYTES {
+            return Err("Pixabay response exceeded the allowed size.".to_string());
+        }
+        String::from_utf8(output.stdout)
+            .map_err(|_| "Pixabay returned non-UTF-8 content.".to_string())
+    })
+    .await
+    .map_err(|error| format!("Pixabay compatibility task failed: {error}"))?
+}
+
 async fn scrape_pixabay_sounds(query: &str, max_items: usize) -> Result<Vec<Value>, String> {
     let page_url = if query.is_empty() {
         "https://pixabay.com/sound-effects/".to_string()
@@ -936,12 +1053,13 @@ async fn scrape_pixabay_sounds(query: &str, max_items: usize) -> Result<Vec<Valu
     };
 
     let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+        .user_agent(PIXABAY_BROWSER_USER_AGENT)
         .cookie_store(true)
         .build()
         .map_err(|error| format!("Could not initialize the Pixabay client: {error}"))?;
+    let curl_cookie_file = TemporaryCookieFile::create()?;
 
-    let page_response = client
+    let html = match client
         .get(&page_url)
         .header(
             "Accept",
@@ -954,16 +1072,39 @@ async fn scrape_pixabay_sounds(query: &str, max_items: usize) -> Result<Vec<Valu
         .header("Sec-Fetch-User", "?1")
         .send()
         .await
-        .map_err(|error| format!("Could not reach Pixabay: {error}"))?;
-
-    if !page_response.status().is_success() {
-        return Err(format!("Pixabay returned HTTP {}", page_response.status()));
-    }
-
-    let html = page_response
-        .text()
-        .await
-        .map_err(|error| format!("Could not read Pixabay page: {error}"))?;
+    {
+        Ok(response) if response.status().is_success() => response
+            .text()
+            .await
+            .map_err(|error| format!("Could not read Pixabay page: {error}"))?,
+        Ok(response) => {
+            eprintln!(
+                "[Pixabay] reqwest page request returned HTTP {}; using compatibility request.",
+                response.status()
+            );
+            curl_pixabay_request(
+                page_url.clone(),
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8".to_string(),
+                None,
+                Some(curl_cookie_file.path.clone()),
+                true,
+            )
+            .await?
+        }
+        Err(error) => {
+            eprintln!(
+                "[Pixabay] reqwest page request failed: {error}; using compatibility request."
+            );
+            curl_pixabay_request(
+                page_url.clone(),
+                "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8".to_string(),
+                None,
+                Some(curl_cookie_file.path.clone()),
+                true,
+            )
+            .await?
+        }
+    };
 
     let marker = "window.__BOOTSTRAP_URL__ = '";
     let Some(start) = html.find(marker) else {
@@ -974,27 +1115,51 @@ async fn scrape_pixabay_sounds(query: &str, max_items: usize) -> Result<Vec<Valu
         return Err("Pixabay bootstrap URL was malformed.".to_string());
     };
     let bootstrap_path = &remainder[..end];
+    if !bootstrap_path.starts_with("/bootstrap/") || !bootstrap_path.ends_with(".json") {
+        return Err("Pixabay bootstrap URL was not recognized.".to_string());
+    }
     let bootstrap_url = format!("https://pixabay.com{bootstrap_path}");
 
-    let json_response = client
+    let data: Value = match client
         .get(&bootstrap_url)
         .header("Accept", "application/json")
         .header("Referer", &page_url)
         .send()
         .await
-        .map_err(|error| format!("Could not retrieve Pixabay sound data: {error}"))?;
-
-    if !json_response.status().is_success() {
-        return Err(format!(
-            "Pixabay data endpoint returned HTTP {}",
-            json_response.status()
-        ));
-    }
-
-    let data: Value = json_response
-        .json()
-        .await
-        .map_err(|error| format!("Could not parse Pixabay sound catalog: {error}"))?;
+    {
+        Ok(response) if response.status().is_success() => response
+            .json()
+            .await
+            .map_err(|error| format!("Could not parse Pixabay sound catalog: {error}"))?,
+        Ok(response) => {
+            eprintln!("[Pixabay] reqwest bootstrap request returned HTTP {}; using compatibility request.", response.status());
+            let body = curl_pixabay_request(
+                bootstrap_url,
+                "application/json".to_string(),
+                Some(page_url.clone()),
+                Some(curl_cookie_file.path.clone()),
+                false,
+            )
+            .await?;
+            serde_json::from_str(&body)
+                .map_err(|error| format!("Could not parse Pixabay sound catalog: {error}"))?
+        }
+        Err(error) => {
+            eprintln!(
+                "[Pixabay] reqwest bootstrap request failed: {error}; using compatibility request."
+            );
+            let body = curl_pixabay_request(
+                bootstrap_url,
+                "application/json".to_string(),
+                Some(page_url.clone()),
+                Some(curl_cookie_file.path.clone()),
+                false,
+            )
+            .await?;
+            serde_json::from_str(&body)
+                .map_err(|error| format!("Could not parse Pixabay sound catalog: {error}"))?
+        }
+    };
 
     let results = data
         .get("page")
@@ -1232,8 +1397,8 @@ pub fn set_sketchfab_token(app: AppHandle, value: String) -> Result<Value, Strin
     if token.len() > 4_096 {
         return Err("The API token is too long.".to_string());
     }
-    secrets::set(&app, SKETCHFAB_TOKEN_KEY, token)?;
-    Ok(json!({ "success": true, "configured": true }))
+    let recovered = secrets::set_with_recovery(&app, SKETCHFAB_TOKEN_KEY, token)?;
+    Ok(json!({ "success": true, "configured": true, "recovered": recovered }))
 }
 
 #[tauri::command(rename_all = "camelCase")]

@@ -8,7 +8,22 @@
   }
 
   const invoke = tauri.core.invoke;
-  const currentWindow = tauri.window.getCurrentWindow();
+  const currentWindow = tauri.window?.getCurrentWindow?.();
+  const errorMessage = (error, fallback = 'The desktop command failed.') => {
+    if (typeof error === 'string' && error.trim()) return error;
+    if (error?.message && typeof error.message === 'string') return error.message;
+    if (error?.error && typeof error.error === 'string') return error.error;
+    return fallback;
+  };
+  // Tauri command rejections can be plain strings. Normalize them once at the
+  // boundary so the UI never renders "undefined" in an error notification.
+  const invokeCommand = async (command, payload) => {
+    try {
+      return await invoke(command, payload);
+    } catch (error) {
+      throw new Error(errorMessage(error, `The ${command} command failed.`));
+    }
+  };
   const allowedStoreUrl = (listingUrl) => {
     try {
       const url = new URL(listingUrl);
@@ -21,7 +36,7 @@
   window.electronAPI = {
     minimize: async () => {
       try {
-        await invoke('window_minimize');
+        await invokeCommand('window_minimize');
       } catch {
         try {
           await currentWindow.minimize();
@@ -30,7 +45,7 @@
     },
     maximize: async () => {
       try {
-        await invoke('window_maximize');
+        await invokeCommand('window_maximize');
       } catch {
         try {
           if (await currentWindow.isMaximized()) {
@@ -43,7 +58,7 @@
     },
     close: async () => {
       try {
-        await invoke('window_close');
+        await invokeCommand('window_close');
       } catch {
         try {
           await currentWindow.close();
@@ -54,7 +69,7 @@
     },
     isMaximized: async () => {
       try {
-        return await invoke('window_is_maximized');
+        return await invokeCommand('window_is_maximized');
       } catch {
         try {
           return await currentWindow.isMaximized();
@@ -68,7 +83,7 @@
         currentWindow.onResized(async () => {
           let max = false;
           try {
-            max = await invoke('window_is_maximized');
+            max = await invokeCommand('window_is_maximized');
           } catch {
             try {
               max = await currentWindow.isMaximized();
@@ -84,18 +99,18 @@
     onStoreViewOpened: () => {},
     onStoreViewClosed: () => {},
 
-    selectDirectory: () => invoke('select_directory'),
-    scanAndSetupProject: (payload) => invoke('scan_and_setup_project', payload),
-    registerProjectRoot: (projectPath, engine) => invoke('register_project_root', { projectPath, engine }),
-    listProjectModels: (modelsDir) => invoke('list_project_models', { modelsDir }),
-    deleteProjectModel: (filePath) => invoke('delete_project_model', { filePath }),
-    importProjectModel: (targetDir) => invoke('import_project_model', { targetDir }),
-    importProjectModelPaths: (targetDir, sourcePaths) => invoke('import_project_model_paths', { targetDir, sourcePaths }),
-    installAssetsboxStore: (projectPath, engine) => invoke('install_assetsbox_store', { projectPath, engine }),
-    getAssetTargetDirectory: (payload) => invoke('get_asset_target_directory', payload),
-    openFolder: (folderPath) => invoke('open_folder', { folderPath }),
-    showItem: (filePath) => invoke('show_item', { filePath }),
-    getDefaultDirs: () => invoke('get_default_dirs'),
+    selectDirectory: () => invokeCommand('select_directory'),
+    scanAndSetupProject: (payload) => invokeCommand('scan_and_setup_project', payload),
+    registerProjectRoot: (projectPath, engine) => invokeCommand('register_project_root', { projectPath, engine }),
+    listProjectModels: (modelsDir) => invokeCommand('list_project_models', { modelsDir }),
+    deleteProjectModel: (filePath) => invokeCommand('delete_project_model', { filePath }),
+    importProjectModel: (targetDir) => invokeCommand('import_project_model', { targetDir }),
+    importProjectModelPaths: (targetDir, sourcePaths) => invokeCommand('import_project_model_paths', { targetDir, sourcePaths }),
+    installAssetsboxStore: (projectPath, engine) => invokeCommand('install_assetsbox_store', { projectPath, engine }),
+    getAssetTargetDirectory: (payload) => invokeCommand('get_asset_target_directory', payload),
+    openFolder: (folderPath) => invokeCommand('open_folder', { folderPath }),
+    showItem: (filePath) => invokeCommand('show_item', { filePath }),
+    getDefaultDirs: () => invokeCommand('get_default_dirs'),
 
     openStorePage: async ({ listingUrl }) => {
       if (!allowedStoreUrl(listingUrl)) return { success: false, error: 'Only supported store pages can be opened here.' };
@@ -119,14 +134,14 @@
       return { success: true };
     },
 
-    getSketchfabDownloadUrl: ({ modelUid }) => invoke('get_sketchfab_download_url', { modelUid }),
-    getSketchfabTokenStatus: () => invoke('get_sketchfab_token_status'),
-    setSketchfabToken: (value) => invoke('set_sketchfab_token', { value }),
-    recordLicenseAcceptance: (payload) => invoke('record_license_acceptance', payload),
-    searchItch2DAssets: (payload) => invoke('search_itch_2d_assets', payload),
-    searchPixabaySoundEffects: (payload) => invoke('search_pixabay_sound_effects', payload),
-    startDownload: (payload) => invoke('start_download', payload),
-    cancelDownload: (downloadId) => invoke('cancel_download', { downloadId }),
+    getSketchfabDownloadUrl: ({ modelUid }) => invokeCommand('get_sketchfab_download_url', { modelUid }),
+    getSketchfabTokenStatus: () => invokeCommand('get_sketchfab_token_status'),
+    setSketchfabToken: (value) => invokeCommand('set_sketchfab_token', { value }),
+    recordLicenseAcceptance: (payload) => invokeCommand('record_license_acceptance', payload),
+    searchItch2DAssets: (payload) => invokeCommand('search_itch_2d_assets', payload),
+    searchPixabaySoundEffects: (payload) => invokeCommand('search_pixabay_sound_effects', payload),
+    startDownload: (payload) => invokeCommand('start_download', payload),
+    cancelDownload: (downloadId) => invokeCommand('cancel_download', { downloadId }),
     onDownloadProgress: (callback) => tauri.event.listen('download:progress', (event) => callback(event.payload)),
   };
 })();

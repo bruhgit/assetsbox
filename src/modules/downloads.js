@@ -8,6 +8,13 @@ import { switchTab } from './tabs.js';
 import { loadProjectModels } from './projectManager.js';
 import { requireLicenseAcceptance } from './licenseCompliance.js';
 
+function errorMessage(error, fallback = 'The download could not be started.') {
+  if (typeof error === 'string' && error.trim()) return error;
+  if (error?.message && typeof error.message === 'string') return error.message;
+  if (error?.error && typeof error.error === 'string') return error.error;
+  return fallback;
+}
+
 export async function initiateDownload(model) {
   if (!window.electronAPI) {
     showToast('Desktop bridge is not initialized', 'error');
@@ -44,7 +51,7 @@ export async function initiateDownload(model) {
 
   const inspectorDownloadStatus = document.getElementById('inspector-download-status');
   const modalSettings = document.getElementById('modal-settings');
-  const inputSketchfabToken = document.getElementById('input-sketchfab-token');
+  const inputSketchfabToken = document.getElementById('settings-sketchfab-token');
 
   if (inspectorDownloadStatus) {
     inspectorDownloadStatus.classList.remove('hidden');
@@ -57,6 +64,10 @@ export async function initiateDownload(model) {
     let filename = model.filename || `${model.name}.glb`;
 
     if (model.isSketchfabApi) {
+      const modelUid = String(model.uid || '').trim();
+      if (!modelUid) {
+        throw new Error('This Sketchfab result has no model ID. Refresh the search and try again.');
+      }
       const tokenStatus = await window.electronAPI.getSketchfabTokenStatus();
       if (!tokenStatus?.configured) {
         if (inspectorDownloadStatus) {
@@ -74,7 +85,7 @@ export async function initiateDownload(model) {
         inspectorDownloadStatus.textContent = 'Connecting to Sketchfab API...';
       }
       const downloadResponse = await window.electronAPI.getSketchfabDownloadUrl({
-        modelUid: model.uid,
+        modelUid,
       });
 
       if (downloadResponse.gltf && downloadResponse.gltf.url) {
@@ -136,10 +147,11 @@ export async function initiateDownload(model) {
     });
   } catch (error) {
     console.error('[Download] Failed to start:', error);
+    const message = errorMessage(error);
     if (inspectorDownloadStatus) {
-      inspectorDownloadStatus.textContent = `Download failed: ${error.message}`;
+      inspectorDownloadStatus.textContent = `Download failed: ${message}`;
     }
-    showToast(`Download failed: ${error.message}`, 'error');
+    showToast(`Download failed: ${message}`, 'error');
   }
 }
 
